@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "turbo-az": {
+      "command": "wsl",
+      "args": ["bash", "-c", "cd /home/javid/dev/turbo-mcp && .venv/bin/python -m src.server"]
+    }
+  }
+}

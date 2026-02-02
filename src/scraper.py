@@ -1,6 +1,6 @@
 """
 Turbo.az Scraper
-Selenium istifadə edərək turbo.az-dan data çəkir.
+Scrapes data from turbo.az using Selenium.
 """
 
 import asyncio
@@ -78,13 +78,13 @@ def _find_chrome_binary() -> Optional[str]:
 
 
 class TurboAzScraper:
-    """Turbo.az üçün Selenium əsaslı scraper."""
+    """Selenium-based scraper for Turbo.az."""
     
     def __init__(self):
         self.driver = None
     
     def _get_driver(self):
-        """Selenium WebDriver yaradır və ya mövcud olanı qaytarır."""
+        """Creates Selenium WebDriver or returns existing one."""
         if self.driver is None:
             options = Options()
             options.add_argument("--headless=new")
@@ -108,7 +108,7 @@ class TurboAzScraper:
         return self.driver
     
     def _close_driver(self):
-        """WebDriver-ı bağlayır."""
+        """Closes WebDriver."""
         if self.driver:
             self.driver.quit()
             self.driver = None
@@ -157,7 +157,7 @@ class TurboAzScraper:
         fuel_id: Optional[int] = None,
         transmission_id: Optional[int] = None,
     ) -> str:
-        """Axtarış URL-i qurur (turbo.az full format, make/model ID ilə)."""
+        """Builds search URL (turbo.az full format, with make/model ID)."""
         params = dict(SEARCH_BASE_PARAMS)
         if make_id:
             params["q[make][]"] = str(make_id)
@@ -189,7 +189,7 @@ class TurboAzScraper:
         transmission: Optional[str] = None,
         limit: int = 20
     ) -> dict:
-        """Avtomobil axtarışı aparır (make/model adından ID əldə edib full URL qurur)."""
+        """Searches for cars (gets ID from make/model name and builds full URL)."""
         fuel_mapping = {
             "benzin": 1, "dizel": 2, "qaz": 3, "elektrik": 6, "hibrid": 7, "plug-in hibrid": 8,
         }
@@ -226,7 +226,7 @@ class TurboAzScraper:
                     if not make_id:
                         all_makes = [label for _, label in make_opts[:20]]
                         logger.warning("Make not found. Sample options: %s", all_makes)
-                        return {"success": False, "error": f"Marka tapılmadı: {make}"}
+                        return {"success": False, "error": f"Make not found: {make}"}
                     if model:
                         # Open make dropdown and click make option so model list is populated
                         try:
@@ -269,41 +269,41 @@ class TurboAzScraper:
                 WebDriverWait(driver, 20).until(
                     EC.presence_of_element_located((By.CLASS_NAME, "products-i"))
                 )
-                
-                # Elanları tapırıq
+
+                # Find listings
                 items = driver.find_elements(By.CLASS_NAME, "products-i")[:limit]
                 
                 for item in items:
                     try:
                         car = {}
-                        
-                        # Başlıq və link
+
+                        # Title and link
                         link_elem = item.find_element(By.CLASS_NAME, "products-i__link")
                         car["url"] = link_elem.get_attribute("href")
                         car["id"] = car["url"].split("/")[-1].split("-")[0]
-                        
-                        # Şəkil
+
+                        # Image
                         try:
                             img = item.find_element(By.CSS_SELECTOR, ".products-i__top img")
                             car["image"] = img.get_attribute("src")
                         except NoSuchElementException:
                             car["image"] = None
-                        
-                        # Başlıq (marka + model)
+
+                        # Title (make + model)
                         try:
                             title = item.find_element(By.CLASS_NAME, "products-i__name")
                             car["title"] = title.text.strip()
                         except NoSuchElementException:
                             car["title"] = "N/A"
-                        
-                        # Qiymət
+
+                        # Price
                         try:
                             price = item.find_element(By.CLASS_NAME, "products-i__price")
                             car["price"] = price.text.strip()
                         except NoSuchElementException:
                             car["price"] = "N/A"
-                        
-                        # Əlavə məlumatlar (il, mühərrik, yürüş)
+
+                        # Additional info (year, engine, mileage)
                         try:
                             attrs = item.find_elements(By.CLASS_NAME, "products-i__attributes")
                             if attrs:
@@ -317,8 +317,8 @@ class TurboAzScraper:
                                     car["mileage"] = parts[2]
                         except NoSuchElementException:
                             pass
-                        
-                        # Şəhər və tarix
+
+                        # City and date
                         try:
                             location = item.find_element(By.CLASS_NAME, "products-i__datetime")
                             loc_text = location.text.strip()
@@ -334,8 +334,8 @@ class TurboAzScraper:
                     except Exception as e:
                         logger.warning(f"Item parse error: {e}")
                         continue
-                
-                # Ümumi nəticə sayı
+
+                # Total result count
                 try:
                     count_elem = driver.find_element(By.CLASS_NAME, "products-title__amount")
                     total_count = count_elem.text.strip()
@@ -357,7 +357,7 @@ class TurboAzScraper:
             except TimeoutException:
                 return {
                     "success": False,
-                    "error": "Səhifə yüklənmədi (timeout)",
+                    "error": "Page failed to load (timeout)",
                     "search_url": url
                 }
             except Exception as e:
@@ -366,15 +366,15 @@ class TurboAzScraper:
                     "error": str(e),
                     "search_url": url
                 }
-        
-        # Sync funksiyasını async-də icra edirik
+
+        # Execute sync function in async
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, _scrape)
     
     async def get_car_details(self, listing_id: str) -> dict:
-        """Konkret elanın ətraflı məlumatlarını əldə edir."""
-        
-        # URL və ya ID ola bilər
+        """Gets detailed information of a specific listing."""
+
+        # Can be URL or ID
         if listing_id.startswith("http"):
             url = listing_id
         else:
@@ -392,15 +392,15 @@ class TurboAzScraper:
                 )
                 
                 details = {"url": url}
-                
-                # Başlıq
+
+                # Title
                 try:
                     title = driver.find_element(By.CLASS_NAME, "product-title")
                     details["title"] = title.text.strip()
                 except NoSuchElementException:
                     details["title"] = "N/A"
-                
-                # Qiymət (sidebar: product-price__i--bold)
+
+                # Price (sidebar: product-price__i--bold)
                 try:
                     price = driver.find_element(By.CSS_SELECTOR, ".product-price__i--bold")
                     details["price"] = price.text.strip()
@@ -410,15 +410,15 @@ class TurboAzScraper:
                         details["price"] = price.text.strip()
                     except NoSuchElementException:
                         details["price"] = "N/A"
-                
-                # Şəkillər (slider: product-photos__slider-top-i img)
+
+                # Images (slider: product-photos__slider-top-i img)
                 try:
                     images = driver.find_elements(By.CSS_SELECTOR, ".product-photos__slider-top-i img")
                     details["images"] = [img.get_attribute("src") for img in images if img.get_attribute("src")]
                 except NoSuchElementException:
                     details["images"] = []
-                
-                # Xüsusiyyətlər
+
+                # Specifications
                 details["specs"] = {}
                 try:
                     props = driver.find_elements(By.CLASS_NAME, "product-properties__i")
@@ -431,15 +431,15 @@ class TurboAzScraper:
                             continue
                 except NoSuchElementException:
                     pass
-                
-                # Təsvir (product-description__content)
+
+                # Description (product-description__content)
                 try:
                     desc = driver.find_element(By.CLASS_NAME, "product-description__content")
                     details["description"] = desc.text.strip()
                 except NoSuchElementException:
                     details["description"] = ""
-                
-                # Satıcı məlumatları (product-owner__info)
+
+                # Seller information (product-owner__info)
                 try:
                     seller_name = driver.find_element(By.CLASS_NAME, "product-owner__info-name")
                     details["seller_name"] = seller_name.text.strip()
@@ -456,8 +456,8 @@ class TurboAzScraper:
                     details["phones"] = [p.text.strip() for p in phones if p.text.strip()]
                 except NoSuchElementException:
                     details["phones"] = []
-                
-                # Statistika: Yeniləndi, Baxışların sayı (product-statistics__i)
+
+                # Statistics: Updated, View count (product-statistics__i)
                 try:
                     stat_items = driver.find_elements(By.CSS_SELECTOR, ".product-statistics__i .product-statistics__i-text")
                     for s in stat_items:
@@ -472,7 +472,7 @@ class TurboAzScraper:
                 return {"success": True, "details": details}
                 
             except TimeoutException:
-                return {"success": False, "error": "Səhifə yüklənmədi"}
+                return {"success": False, "error": "Page failed to load"}
             except Exception as e:
                 return {"success": False, "error": str(e)}
         
@@ -480,7 +480,7 @@ class TurboAzScraper:
         return await loop.run_in_executor(None, _scrape)
     
     async def get_makes_models(self, make: Optional[str] = None) -> dict:
-        """Mövcud marka və modelləri əldə edir."""
+        """Gets available makes and models."""
         
         url = f"{BASE_URL}/autos"
         
@@ -507,7 +507,7 @@ class TurboAzScraper:
                             make_id = val
                             break
                     if not make_id:
-                        return {"success": False, "error": f"Marka tapılmadı: {make}"}
+                        return {"success": False, "error": f"Make not found: {make}"}
                     try:
                         make_cont = driver.find_element(By.CSS_SELECTOR, '.tz-dropdown[data-id="q_make"]')
                         make_cont.find_element(By.CSS_SELECTOR, ".tz-dropdown__selected").click()
@@ -528,7 +528,7 @@ class TurboAzScraper:
                 return {"success": True, "makes": makes}
                 
             except TimeoutException:
-                return {"success": False, "error": "Səhifə yüklənmədi"}
+                return {"success": False, "error": "Page failed to load"}
             except Exception as e:
                 return {"success": False, "error": str(e)}
         
@@ -536,7 +536,7 @@ class TurboAzScraper:
         return await loop.run_in_executor(None, _scrape)
     
     async def get_trending(self, category: str = "new", limit: int = 20) -> dict:
-        """Ən yeni/populyar elanları əldə edir."""
+        """Gets newest/popular listings."""
         
         if category == "vip":
             url = f"{BASE_URL}/autos?q[extras][]=vip"
@@ -544,10 +544,10 @@ class TurboAzScraper:
             url = f"{BASE_URL}/autos?order=view_count"
         else:  # new
             url = f"{BASE_URL}/autos"
-        
-        # search_cars funksiyasından istifadə edirik
+
+        # Use search_cars function
         return await self.search_cars(limit=limit)
     
     def __del__(self):
-        """Destructor - driver-ı bağlayır."""
+        """Destructor - closes driver."""
         self._close_driver()

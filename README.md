@@ -1,51 +1,51 @@
 # Turbo.az MCP Server
 
-Turbo.az avtomobil bazarı üçün MCP (Model Context Protocol) server. Bu server Claude Desktop-a turbo.az-dan avtomobil axtarmaq və elan məlumatlarını əldə etmək imkanı verir.
+MCP (Model Context Protocol) server for Turbo.az automotive marketplace. This server enables Claude Desktop to search for cars and retrieve listing information from turbo.az.
 
-## ⚠️ Vacib Qeyd
+## ⚠️ Important Note
 
-Turbo.az xaricdən (Azərbaycandan kənar) girişi bloklayır. Bu server **Azərbaycan IP-dən işləməlidir**:
-- Lokal kompüterdə (Azərbaycanda)
-- VPN vasitəsilə Azərbaycan IP ilə
-- Azərbaycanda yerləşən VPS-dən
+Turbo.az blocks access from outside Azerbaijan. This server **must run from an Azerbaijani IP**:
+- Local computer (in Azerbaijan)
+- Via VPN with Azerbaijan IP
+- From a VPS located in Azerbaijan
 
-## 🚀 Quraşdırma
+## 🚀 Installation
 
-### 1. Tələblər
+### 1. Requirements
 
 - Python 3.10+
 - Google Chrome browser
 - pip
 
-### 2. Server quraşdırması
+### 2. Server Setup
 
 ```bash
-# Repo-nu klonla və ya faylları kopyala
+# Clone the repo or copy files
 cd turbo-az-mcp
 
-# Virtual environment yarat
+# Create virtual environment
 python -m venv venv
 
-# Aktivləşdir
+# Activate
 # Windows:
 venv\Scripts\activate
 # Linux/Mac:
 source venv/bin/activate
 
-# Paketləri quraşdır
+# Install packages
 pip install -e .
 ```
 
-### 3. Test et
+### 3. Test
 
 ```bash
-# Serveri manual işə sal
+# Run server manually
 python -m src.server
 ```
 
-### 4. MCP-ni LLM olmadan test et
+### 4. Test MCP without LLM
 
-Serveri spawn edib tool çağırır (Chrome lazımdır):
+Spawns the server and calls tools (requires Chrome):
 
 ```bash
 uv run python scripts/test_mcp.py
@@ -55,14 +55,14 @@ uv run python scripts/test_mcp.py
 
 **Local-only:** Claude Desktop runs the server as a subprocess. Do **not** use "Add custom connector" / Remote MCP URL.
 
-1. Config faylını tap və aç:
+1. Find and open the config file:
    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-2. `mcpServers` bölməsinə əlavə et (və ya layihədəki `claude_desktop_config.example.json`-u kopyala və `cwd`-i öz yoluna dəyiş):
+2. Add to `mcpServers` section (or copy `claude_desktop_config.example.json` from the project and change `cwd` to your path):
 
-**uv ilə (tövsiyə olunur):**
+**With uv (recommended):**
 ```json
 {
   "mcpServers": {
@@ -75,7 +75,7 @@ uv run python scripts/test_mcp.py
 }
 ```
 
-**Python / venv ilə:**
+**With Python / venv:**
 ```json
 {
   "mcpServers": {
@@ -88,11 +88,11 @@ uv run python scripts/test_mcp.py
 }
 ```
 
-**Qeyd:** `cwd` layihə qovluğunun tam yoludur. Claude Desktop-u yenidən başladın.
+**Note:** `cwd` is the full path to the project folder. Restart Claude Desktop.
 
-### Claude Windows, server WSL-də
+### Claude on Windows, Server in WSL
 
-Claude Desktop Windows-da, layihə isə WSL-dədirsə, config-də `wsl` istifadə et. WSL non-interactive shell-də `uv` PATH-da olmaya bilər, ona görə venv python istifadə et:
+If Claude Desktop is on Windows but the project is in WSL, use `wsl` in config. WSL non-interactive shell may not have `uv` in PATH, so use venv python:
 
 ```json
 {
@@ -105,76 +105,76 @@ Claude Desktop Windows-da, layihə isə WSL-dədirsə, config-də `wsl` istifad�
 }
 ```
 
-`/home/javid/dev/turbo-mcp` əvəzinə öz WSL layihə yolunu yaz. Əgər venv `.venv` deyil (məs. `venv`), `.venv/bin/python` əvəzinə `venv/bin/python` yaz.
+Replace `/home/javid/dev/turbo-mcp` with your WSL project path. If venv is not `.venv` (e.g. `venv`), use `venv/bin/python` instead of `.venv/bin/python`.
 
-**WSL-də Chrome:** Server WSL-də işləyəndə Selenium üçün Chrome/Chromium WSL-də quraşdırılmalıdır (Windows Chrome işləməz). WSL terminalda:
+**Chrome in WSL:** When server runs in WSL, Chrome/Chromium must be installed in WSL for Selenium (Windows Chrome won't work). In WSL terminal:
 ```bash
 sudo apt update && sudo apt install -y chromium-browser
 ```
-Əgər `chromium-browser` snap tələb edirsə, Google Chrome for Linux quraşdırın və ya `CHROME_BINARY=/usr/bin/chromium` (və ya quraşdırılan yol) təyin edin.
+If `chromium-browser` requires snap, install Google Chrome for Linux or set `CHROME_BINARY=/usr/bin/chromium` (or installed path).
 
-## 📋 Mövcud Toollar
+## 📋 Available Tools
 
 ### 1. `search_cars`
-Avtomobil axtarışı.
+Search for cars.
 
-**Parametrlər:**
-- `make` - Marka (BMW, Mercedes, Toyota və s.)
-- `model` - Model (X5, E-Class və s.)
-- `price_min` / `price_max` - Qiymət aralığı (AZN)
-- `year_min` / `year_max` - İl aralığı
-- `fuel_type` - Yanacaq: benzin, dizel, qaz, elektrik, hibrid
+**Parameters:**
+- `make` - Brand (BMW, Mercedes, Toyota, etc.)
+- `model` - Model (X5, E-Class, etc.)
+- `price_min` / `price_max` - Price range (AZN)
+- `year_min` / `year_max` - Year range
+- `fuel_type` - Fuel: benzin, dizel, qaz, elektrik, hibrid
 - `transmission` - avtomat, mexaniki
-- `limit` - Nəticə sayı (default: 10)
+- `limit` - Number of results (default: 10)
 
-**Nümunə sorğu:** "Turbo.az-da 2020-ci ildən yeni BMW X5 axtar, qiyməti 50000 AZN-ə qədər"
+**Example query:** "Search for BMW X5 from 2020, price up to 50000 AZN on Turbo.az"
 
 ### 2. `get_car_details`
-Elanın ətraflı məlumatları.
+Detailed listing information.
 
-**Parametrlər:**
-- `listing_id` - Elan ID-si və ya tam URL
+**Parameters:**
+- `listing_id` - Listing ID or full URL
 
-**Nümunə sorğu:** "Turbo.az-da bu elanın detallarını göstər: 12345678"
+**Example query:** "Show details of this listing on Turbo.az: 12345678"
 
 ### 3. `get_makes_models`
-Marka və model siyahısı.
+List of makes and models.
 
-**Parametrlər:**
-- `make` - Marka (modellərini görmək üçün, boş = bütün markalar)
+**Parameters:**
+- `make` - Brand (to see its models, empty = all makes)
 
-**Nümunə sorğu:** "BMW-nin hansı modelləri var turbo.az-da?"
+**Example query:** "What BMW models are available on turbo.az?"
 
 ### 4. `get_trending`
-Yeni/populyar elanlar.
+New/popular listings.
 
-**Parametrlər:**
+**Parameters:**
 - `category` - new, popular, vip
-- `limit` - Nəticə sayı
+- `limit` - Number of results
 
-## 🐛 Problemlər
+## 🐛 Troubleshooting
 
-### "403 Forbidden" xətası
-- Azərbaycan IP-dən işlədiyindən əmin ol
-- VPN istifadə et (Azərbaycan IP)
+### "403 Forbidden" error
+- Make sure you're running from Azerbaijan IP
+- Use VPN (Azerbaijan IP)
 
-### ChromeDriver xətası
-- Chrome brauzerin quraşdırıldığından əmin ol
-- `webdriver-manager` avtomatik ChromeDriver yükləyir
+### ChromeDriver error
+- Make sure Chrome browser is installed
+- `webdriver-manager` automatically downloads ChromeDriver
 
 ### "DevToolsActivePort file doesn't exist" (WSL)
-- `chromium-browser` (snap) WSL-də tez-tez işləmir. Google Chrome quraşdırın:
+- `chromium-browser` (snap) often doesn't work in WSL. Install Google Chrome:
   ```bash
   wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
   sudo dpkg -i google-chrome-stable_current_amd64.deb
   sudo apt install -f
   ```
-- Və ya virtual display ilə: `sudo apt install xvfb` sonra `xvfb-run -a uv run python scripts/test_mcp.py`
+- Or with virtual display: `sudo apt install xvfb` then `xvfb-run -a uv run python scripts/test_mcp.py`
 
-### Timeout xətası
-- İnternet bağlantını yoxla
-- turbo.az-ın işlədiyini yoxla
+### Timeout error
+- Check internet connection
+- Check if turbo.az is working
 
-## 📄 Lisenziya
+## 📄 License
 
 MIT
